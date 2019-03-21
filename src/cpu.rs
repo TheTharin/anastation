@@ -3,6 +3,7 @@ use super::interconnect;
 const NUM_GPR: usize = 32;
 const NUM_FPR: usize = 32;
 
+#[derive(Debug)]
 pub struct Cpu {
     reg_gpr: [u64; NUM_GPR],
     reg_fpr: [f64; NUM_FPR],
@@ -53,9 +54,31 @@ impl Cpu {
     // TODO: Different interface
     pub fn run(&mut self) {
         loop {
-            let opcode = self.read_word(self.reg_pc);
-            panic!("Opcode: {:#x}", opcode);
+            self.run_instruction();
         }
+    }
+
+    pub fn run_instruction(&mut self) {
+        let instruction = self.read_word(self.reg_pc);
+
+        // TODO: Check endian
+        let opcode = (instruction >> 26) & 0b111111;
+
+        match opcode {
+            0b001111 => {
+                // LUI
+                let imm = instruction & 0xffff;
+                let rt = (instruction >> 16) & 0b11111;
+                // TODO: Check 32 vs 64 bits for sign extend
+                // (currently 32 bits is assumed)
+                self.write_reg_gpr(rt as usize, (imm << 16) as u64);
+            },
+            _ => {
+                panic!("Unrecognized instruction: {:#x}", instruction);
+            }
+        }
+
+        self.reg_pc += 4;
     }
 
     fn read_word(&self, virtual_addr: u64) -> u32 {
@@ -76,9 +99,16 @@ impl Cpu {
             panic!("Unrecognized virtual address: {:#x}", virtual_addr)
         }
     }
+
+    fn write_reg_gpr(&mut self, index: usize, value: u64) {
+        if index != 0 {
+            self.reg_gpr[index] = value;
+        }
+    }
 }
 
 // TODO: Better name?
+#[derive(Debug)]
 enum RegConfigEp {
     D, // TODO: Better name?
     DxxDxx, // TODO: Better name?
@@ -91,6 +121,7 @@ impl Default for RegConfigEp {
     }
 }
 
+#[derive(Debug)]
 enum RegConfigBe {
     LittleEndian,
     BigEndian
@@ -102,7 +133,7 @@ impl Default for RegConfigBe {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct RegConfig {
     reg_config_ep: RegConfigEp,
     reg_config_be: RegConfigBe
@@ -115,7 +146,7 @@ impl RegConfig {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct Cp0 {
     reg_config: RegConfig
 }

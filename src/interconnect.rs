@@ -8,7 +8,7 @@ const RAM_SIZE: usize = 4 * 1024 * 1024;
 pub struct Interconnect {
     pif_rom: Vec<u8>,
 
-    ram: Vec<u16>
+    ram: Vec<u16>,
 }
 
 impl Interconnect {
@@ -16,7 +16,7 @@ impl Interconnect {
         Interconnect {
             pif_rom: pif_rom,
 
-            ram: vec![0; RAM_SIZE]
+            ram: vec![0; RAM_SIZE],
         }
     }
 
@@ -36,7 +36,6 @@ impl Interconnect {
             panic!("Unrecognized address: {:#x}", addr)
         }
     }
-
 }
 
 impl fmt::Debug for Interconnect {

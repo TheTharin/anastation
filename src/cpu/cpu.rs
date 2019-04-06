@@ -1,4 +1,5 @@
-use super::interconnect;
+use super::super::interconnect;
+use super::cp0::cp0;
 
 const NUM_GPR: usize = 32;
 const NUM_FPR: usize = 32;
@@ -18,9 +19,9 @@ pub struct Cpu {
     reg_fcr0: u32,
     reg_fcr31: u32,
 
-    cp0: Cp0,
+    cp0: cp0::Cp0,
 
-    interconnect: interconnect::Interconnect
+    interconnect: interconnect::Interconnect,
 }
 
 impl Cpu {
@@ -39,9 +40,9 @@ impl Cpu {
             reg_fcr0: 0,
             reg_fcr31: 0,
 
-            cp0: Cp0::default(),
+            cp0: cp0::Cp0::default(),
 
-            interconnect: interconnect
+            interconnect: interconnect,
         }
     }
 
@@ -61,18 +62,22 @@ impl Cpu {
     pub fn run_instruction(&mut self) {
         let instruction = self.read_word(self.reg_pc);
 
-        // TODO: Check endian
         let opcode = (instruction >> 26) & 0b111111;
+        let rt = (instruction >> 16) & 0b11111;
 
         match opcode {
             0b001111 => {
                 // LUI
                 let imm = instruction & 0xffff;
-                let rt = (instruction >> 16) & 0b11111;
-                // TODO: Check 32 vs 64 bits for sign extend
-                // (currently 32 bits is assumed)
+                // TODO: Sign extend for upper 32 bits
                 self.write_reg_gpr(rt as usize, (imm << 16) as u64);
-            },
+            }
+            0b010000 => {
+                // MTC0
+                let rd = instruction >> 11 & 0b11111;
+                let data = self.read_reg_gpr(rt as usize);
+                self.cp0.write_reg(rd, data);
+            }
             _ => {
                 panic!("Unrecognized instruction: {:#x}", instruction);
             }
@@ -105,54 +110,11 @@ impl Cpu {
             self.reg_gpr[index] = value;
         }
     }
-}
 
-// TODO: Better name?
-#[derive(Debug)]
-enum RegConfigEp {
-    D, // TODO: Better name?
-    DxxDxx, // TODO: Better name?
-    RFU // TODO: Better name?
-}
-
-impl Default for RegConfigEp {
-    fn default() -> RegConfigEp {
-        RegConfigEp::D
-    }
-}
-
-#[derive(Debug)]
-enum RegConfigBe {
-    LittleEndian,
-    BigEndian
-}
-
-impl Default for RegConfigBe {
-    fn default() -> RegConfigBe {
-        RegConfigBe::BigEndian
-    }
-}
-
-#[derive(Debug, Default)]
-struct RegConfig {
-    reg_config_ep: RegConfigEp,
-    reg_config_be: RegConfigBe
-}
-
-impl RegConfig {
-    fn power_on_reset(&mut self) {
-        self.reg_config_ep = RegConfigEp::D;
-        self.reg_config_be = RegConfigBe::BigEndian;
-    }
-}
-
-#[derive(Debug, Default)]
-struct Cp0 {
-    reg_config: RegConfig
-}
-
-impl Cp0 {
-    fn power_on_reset(&mut self) {
-        self.reg_config.power_on_reset();
+    fn read_reg_gpr(&self, index: usize) -> u64 {
+        match index {
+            0 => 0,
+            _ => self.reg_gpr[index],
+        }
     }
 }

@@ -111,9 +111,9 @@ impl Cpu {
         }
     }
 
-    fn write_reg_gpr(&mut self, index: usize, value: u64) {
+    fn write_reg_gpr(&mut self, index: usize, data: u64) {
         if index != 0 {
-            self.reg_gpr[index] = value;
+            self.reg_gpr[index] = data;
         }
     }
 

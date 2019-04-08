@@ -40,30 +40,33 @@ pub struct RegStatus {
     global_interrupts_enable: bool,
 }
 
-impl RegStatus {
-    pub fn write(&mut self, data: u32) {
-        self.coprocessor_usability[3] = (data & (1 << 31)) != 0;
-        self.coprocessor_usability[2] = (data & (1 << 30)) != 0;
-        self.coprocessor_usability[1] = (data & (1 << 29)) != 0;
-        self.coprocessor_usability[0] = (data & (1 << 28)) != 0;
+impl From<u32> for RegStatus {
+    fn from(data: u32) -> Self {
+        RegStatus {
+            coprocessor_usability: [
+                (data & (1 << 31)) != 0,
+                (data & (1 << 30)) != 0,
+                (data & (1 << 29)) != 0,
+                (data & (1 << 28)) != 0,
+            ],
 
-        self.low_power = (data & (1 << 27)) != 0;
-        self.additional_fp_regs = (data & (1 << 26)) != 0;
-        self.reverse_endian = (data & (1 << 25)) != 0;
-        self.reverse_endian = (data & (1 << 24)) != 0;
+            low_power: (data & (1 << 27)) != 0,
+            additional_fp_regs: (data & (1 << 26)) != 0,
+            reverse_endian: (data & (1 << 25)) != 0,
 
-        self.diagnostic_status = data.into();
-        self.interrupt_mask = data.into();
+            diagnostic_status: data.into(),
+            interrupt_mask: data.into(),
 
-        self.kernel_mode_64bit_addressing = (data & (1 << 7)) != 0;
-        self.supervisor_mode_64bit_addressing = (data & (1 << 6)) != 0;
-        self.user_mode_64bit_addressing = (data & (1 << 5)) != 0;
+            kernel_mode_64bit_addressing: (data & (1 << 7)) != 0,
+            supervisor_mode_64bit_addressing: (data & (1 << 6)) != 0,
+            user_mode_64bit_addressing: (data & (1 << 5)) != 0,
 
-        self.mode = data.into();
+            mode: data.into(),
 
-        self.error_level = (data & (1 << 2)) != 0;
-        self.exception_level = (data & (1 << 1)) != 0;
-        self.global_interrupts_enable = (data & (1 << 0)) != 0;
+            error_level: (data & (1 << 2)) != 0,
+            exception_level: (data & (1 << 1)) != 0,
+            global_interrupts_enable: (data & (1 << 0)) != 0,
+        }
     }
 }
 
@@ -87,17 +90,17 @@ struct SelfDiagnosticStatusField {
 }
 
 impl From<u32> for SelfDiagnosticStatusField {
-    fn from(value: u32) -> Self {
+    fn from(data: u32) -> Self {
         SelfDiagnosticStatusField {
-            instruction_trace_support: (value & (1 << 24)) != 0,
+            instruction_trace_support: (data & (1 << 24)) != 0,
 
-            tlb_and_general_exception_vectors_location: value.into(),
+            tlb_and_general_exception_vectors_location: data.into(),
 
-            tlb_shutdown: (value & (1 << 21)) != 0,
+            tlb_shutdown: (data & (1 << 21)) != 0,
 
-            soft_reset_or_nmi_occurred: (value & (1 << 20)) != 0,
+            soft_reset_or_nmi_occurred: (data & (1 << 20)) != 0,
 
-            condition_bit: (value & (1 << 18)) != 0,
+            condition_bit: (data & (1 << 18)) != 0,
         }
     }
 }
@@ -116,8 +119,8 @@ impl Default for TLBGeneralExceptionVectorsLocation {
 }
 
 impl From<u32> for TLBGeneralExceptionVectorsLocation {
-    fn from(value: u32) -> Self {
-        match (value >> 22) & 0b1 {
+    fn from(data: u32) -> Self {
+        match (data >> 22) & 0b1 {
             0 => TLBGeneralExceptionVectorsLocation::Normal,
             1 => TLBGeneralExceptionVectorsLocation::Bootstrap,
             _ => unreachable!(),
@@ -138,17 +141,17 @@ struct InterruptMask {
 }
 
 impl From<u32> for InterruptMask {
-    fn from(value: u32) -> Self {
+    fn from(data: u32) -> Self {
         InterruptMask {
-            timer_interrupt: (value & (1 << 15)) != 0,
+            timer_interrupt: (data & (1 << 15)) != 0,
             external_interrupt_write_req: [
-                (value & (1 << 10)) != 0,
-                (value & (1 << 11)) != 0,
-                (value & (1 << 12)) != 0,
-                (value & (1 << 13)) != 0,
-                (value & (1 << 14)) != 0,
+                (data & (1 << 10)) != 0,
+                (data & (1 << 11)) != 0,
+                (data & (1 << 12)) != 0,
+                (data & (1 << 13)) != 0,
+                (data & (1 << 14)) != 0,
             ],
-            software_interrupt_causer_reg: [(value & (1 << 8)) != 0, (value & (1 << 9)) != 0],
+            software_interrupt_causer_reg: [(data & (1 << 8)) != 0, (data & (1 << 9)) != 0],
         }
     }
 }
@@ -167,12 +170,12 @@ impl Default for Mode {
 }
 
 impl From<u32> for Mode {
-    fn from(value: u32) -> Self {
-        match (value >> 3) & 0b11 {
+    fn from(data: u32) -> Self {
+        match (data >> 3) & 0b11 {
             0b00 => Mode::Kernel,
             0b01 => Mode::Supervisor,
             0b10 => Mode::User,
-            _ => panic!("Invalid KSU bits: {:#b}", value),
+            _ => panic!("Invalid KSU bits: {:#b}", data),
         }
     }
 }
